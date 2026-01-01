@@ -331,6 +331,117 @@ services:
   # FRONTEND (Development)
   # ============================================================================
 
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: rationalization-api-gateway
+    environment:
+      NODE_ENV: development
+      PORT: 8000
+      CATALOG_API_URL: http://catalog-api:3000
+      AI_CLASSIFIER_URL: http://ai-classifier:8001
+      BLUEPRINT_ENGINE_URL: http://blueprint-engine:3001
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-changeme123}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key}
+      ALLOWED_ORIGINS: http://localhost:3002
+    ports:
+      - "8000:8000"
+    depends_on:
+      catalog-api:
+        condition: service_started
+      ai-classifier:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/api-gateway:/app
+      - /app/node_modules
+    networks:
+      - rationalization-network
+    restart: unless-stopped
+
+  # Blueprint Engine
+  blueprint-engine:
+    build:
+      context: ./backend/blueprint-engine
+      dockerfile: Dockerfile
+    container_name: rationalization-blueprint-engine
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: rationalization
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-changeme123}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/blueprint-engine:/app
+      - /app/node_modules
+    networks:
+      - rationalization-network
+    restart: unless-stopped
+
+  # Natural Language Interface
+  nl-interface:
+    build:
+      context: ./backend/nl-interface
+      dockerfile: Dockerfile
+    container_name: rationalization-nl-interface
+    environment:
+      PYTHONUNBUFFERED: 1
+      PORT: 8002
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CATALOG_API_URL: http://catalog-api:3000
+      AI_CLASSIFIER_URL: http://ai-classifier:8001
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-changeme123}
+    ports:
+      - "8002:8002"
+    depends_on:
+      - catalog-api
+      - redis
+    volumes:
+      - ./backend/nl-interface:/app
+    networks:
+      - rationalization-network
+    restart: unless-stopped
+
+  # Solution Composer
+  solution-composer:
+    build:
+      context: ./backend/solution-composer
+      dockerfile: Dockerfile
+    container_name: rationalization-solution-composer
+    environment:
+      PYTHONUNBUFFERED: 1
+      PORT: 8003
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CATALOG_API_URL: http://catalog-api:3000
+    ports:
+      - "8003:8003"
+    depends_on:
+      - catalog-api
+    volumes:
+      - ./backend/solution-composer:/app
+    networks:
+      - rationalization-network
+    restart: unless-stopped
+
   # Web Application (React + Next.js)
   web-app:
     build:
@@ -340,9 +451,9 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:8000
-      NEXT_PUBLIC_WS_URL: ws://localhost:8000
+      NEXT_PUBLIC_NL_API_URL: http://localhost:8002
     ports:
-      - "3002:3000"
+      - "3002:3002"
     volumes:
       - ./frontend/web-app:/app
       - /app/node_modules
