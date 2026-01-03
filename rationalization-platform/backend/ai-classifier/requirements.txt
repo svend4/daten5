@@ -1,0 +1,30 @@
+# AI Classifier Service Dependencies
+
+# Web framework
+fastapi==0.108.0
+uvicorn[standard]==0.25.0
+pydantic==2.5.3
+python-dotenv==1.0.0
+
+# AI/ML
+openai==1.6.1
+tiktoken==0.5.2
+transformers==4.36.2
+torch==2.1.2
+sentence-transformers==2.2.2
+
+# Database
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# Data processing
+numpy==1.26.2
+pandas==2.1.4
+
+# HTTP client
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
